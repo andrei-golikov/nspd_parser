@@ -1,5 +1,3 @@
-# FILENAME: README.md
-
 # NSPD Parser
 
 Скрипт `parser.py` автоматизирует получение URL карточек объектов недвижимости на карте НСПД (https://nspd.gov.ru/map) по списку кадастровых номеров.  
