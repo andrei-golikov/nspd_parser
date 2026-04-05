@@ -25,7 +25,7 @@ def start_driver():
 
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
-    driver.set_page_load_timeout(60)
+    driver.set_page_load_timeout(120)
     return driver
 
 
@@ -34,7 +34,7 @@ def open_map(driver):
     driver.get(NSPD_URL)
 
     # Ждём базовую загрузку документа
-    WebDriverWait(driver, 60).until(
+    WebDriverWait(driver, 120).until(
         EC.presence_of_element_located((By.TAG_NAME, "body"))
     )
 
@@ -50,7 +50,7 @@ def open_map(driver):
             pass
 
     # Вместо жёсткого time.sleep(8) — ждём появления m-sidebar
-    WebDriverWait(driver, 60).until(
+    WebDriverWait(driver, 120).until(
         EC.presence_of_element_located((By.TAG_NAME, "m-sidebar"))
     )
 
