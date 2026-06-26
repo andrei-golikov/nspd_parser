@@ -1,8 +1,10 @@
 ﻿# FILENAME: parser.py
 
 import json
+import sys
 import time
 from pathlib import Path
+from typing import Any, cast
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -13,6 +15,11 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 NSPD_URL = "https://nspd.gov.ru/map"
+sys.dont_write_bytecode = True
+
+
+def wait_in(context: Any, timeout: int) -> WebDriverWait:
+    return WebDriverWait(cast(Any, context), timeout)
 
 
 def start_driver():
@@ -91,7 +98,7 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
       и берём ссылку из popup (input.value).
     """
     print("L3: ищу m-search-field внутри shadow_root m-sidebar...")
-    search_host = WebDriverWait(sidebar_shadow, timeout).until(
+    search_host = wait_in(sidebar_shadow, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "m-search-field"))
     )
     print("L3: m-search-field найден")
@@ -100,7 +107,7 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
     print("L4: shadow_root m-search-field получен")
 
     print("L5: ищу form > label.input-label > input внутри shadow_root m-search-field...")
-    search_input = WebDriverWait(search_shadow, timeout).until(
+    search_input = wait_in(search_shadow, timeout).until(
         EC.element_to_be_clickable(
             (By.CSS_SELECTOR, "form > label.input-label > input")
         )
@@ -112,7 +119,7 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
     search_input.send_keys(Keys.ENTER)
 
     print("L6: жду m-found-objects внутри shadow_root m-sidebar...")
-    found_host = WebDriverWait(sidebar_shadow, timeout).until(
+    found_host = wait_in(sidebar_shadow, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "m-found-objects"))
     )
     print("L6: m-found-objects найден")
@@ -121,14 +128,14 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
     print("L7: shadow_root m-found-objects получен")
 
     print("L8: ищу m-accordion внутри shadow_root m-found-objects...")
-    accordion = WebDriverWait(found_shadow, timeout).until(
+    accordion = wait_in(found_shadow, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "m-accordion"))
     )
     accordion_shadow = accordion.shadow_root
     print("L8: m-accordion найден, shadow_root m-accordion получен")
 
     print("L9: ищу первый button span внутри shadow_root m-accordion и кликаю...")
-    first_item_span = WebDriverWait(accordion_shadow, timeout).until(
+    first_item_span = wait_in(accordion_shadow, timeout).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, "button span"))
     )
     first_item_span.click()
@@ -151,7 +158,7 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
     print("L11a: shadow_root(copy-url-control) получен")
 
     # 1) внутри shadow-root: m-tooltip -> m-button.copy-url -> shadow_root -> button (кнопка 'Поделиться')
-    tooltip_host = WebDriverWait(copy_ctrl_shadow, timeout).until(
+    tooltip_host = wait_in(copy_ctrl_shadow, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "m-tooltip"))
     )
     print("L11b: m-tooltip найден")
@@ -164,7 +171,7 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
     mbutton_shadow = mbutton_host.shadow_root
     print("L11d: shadow_root(m-button.copy-url) получен")
 
-    share_button = WebDriverWait(mbutton_shadow, timeout).until(
+    share_button = wait_in(mbutton_shadow, timeout).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, "button.button.outlined-icon"))
     )
     print("L11e: кнопка 'Поделиться' найдена, кликаю...")
@@ -172,7 +179,7 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
 
     # 2) Ждём появления copy-url-popup внутри того же shadow_root copy-url-control
     print("L12: жду появления copy-url-popup...")
-    popup_host = WebDriverWait(copy_ctrl_shadow, timeout).until(
+    popup_host = wait_in(copy_ctrl_shadow, timeout).until(
         EC.visibility_of_element_located((By.CSS_SELECTOR, "copy-url-popup"))
     )
     print("L12a: copy-url-popup найден и видим")
@@ -182,7 +189,7 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
 
     # 3) Внутри popup: input.input с ссылкой
     print("L12c: ищу input.input со ссылкой внутри popup...")
-    share_input = WebDriverWait(popup_shadow, timeout).until(
+    share_input = wait_in(popup_shadow, timeout).until(
         EC.presence_of_element_located(
             (By.CSS_SELECTOR, "div.copy-url-popup label > input.input")
         )
@@ -191,13 +198,13 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
 
     # 4) Кнопка 'Скопировать ссылку' (m-button.popup-button -> shadow_root -> button)
     print("L12e: ищу m-button.popup-button внутри popup...")
-    popup_button_host = WebDriverWait(popup_shadow, timeout).until(
+    popup_button_host = wait_in(popup_shadow, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "m-button.popup-button"))
     )
     popup_button_shadow = popup_button_host.shadow_root
     print("L12f: shadow_root(m-button.popup-button) получен")
 
-    copy_btn = WebDriverWait(popup_button_shadow, timeout).until(
+    copy_btn = wait_in(popup_button_shadow, timeout).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, "button.button.filled"))
     )
     print("L12g: кнопка 'Скопировать ссылку' найдена, кликаю...")
@@ -254,6 +261,8 @@ def main():
     cad_file = Path("cad_list.txt")
 
     use_polygon = polygon_path.exists()
+    cad_numbers: list[str] = []
+    poly_obj = None
 
     if use_polygon:
         print("Найден polygon.json — беру кадастровые номера из него с приоритетом.")
@@ -292,6 +301,9 @@ def main():
         # Перезаписываем kadastrurl в polygon.json по совпадению kadastr
         print("Обновляю kadastrurl в polygon.json...")
         url_by_cad = {item["cad_num"]: item["url"] for item in results}
+        if poly_obj is None:
+            print("polygon.json не был загружен")
+            return
         for item in poly_obj.get("data", []):
             cad = (item.get("kadastr") or "").strip()
             if cad and cad in url_by_cad:
