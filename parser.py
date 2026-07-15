@@ -22,6 +22,54 @@ def wait_in(context: Any, timeout: int) -> WebDriverWait:
     return WebDriverWait(cast(Any, context), timeout)
 
 
+def click_popup_checkbox_by_text(driver, popup_host, label_text: str) -> bool:
+    return bool(
+        driver.execute_script(
+            """
+            const root = arguments[0].shadowRoot;
+            const labelText = arguments[1];
+            const nodes = Array.from(root.querySelectorAll("*"));
+            const textNode = nodes.find(
+                node => (node.textContent || "").trim().includes(labelText)
+            );
+            if (!textNode) {
+                return false;
+            }
+
+            const candidates = [];
+            let current = textNode;
+            for (let i = 0; current && i < 6; i += 1) {
+                candidates.push(current);
+                candidates.push(current.previousElementSibling);
+                candidates.push(current.nextElementSibling);
+                current = current.parentElement;
+            }
+
+            for (const node of candidates.filter(Boolean)) {
+                const checkbox =
+                    node.matches?.('input[type="checkbox"], m-checkbox, [role="checkbox"]')
+                        ? node
+                        : node.querySelector?.('input[type="checkbox"], m-checkbox, [role="checkbox"]');
+                if (checkbox) {
+                    checkbox.click();
+                    return true;
+                }
+            }
+
+            const row = textNode.closest("label") || textNode.parentElement;
+            if (row) {
+                row.click();
+                return true;
+            }
+
+            return false;
+            """,
+            popup_host,
+            label_text,
+        )
+    )
+
+
 def start_driver():
     options = webdriver.ChromeOptions()
     # options.add_argument("--headless=new")
@@ -145,6 +193,12 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
         lambda d: "selectedCard=" in d.current_url
     )
     time.sleep(1)
+    try:
+        WebDriverWait(driver, 5).until(
+            lambda d: "coordinate_x=" in d.current_url and "coordinate_y=" in d.current_url
+        )
+    except Exception:
+        pass
 
     # ====== БЛОК 'ПОДЕЛИТЬСЯ' (share-ссылка через copy-url-control) ======
 
@@ -187,6 +241,13 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
     popup_shadow = popup_host.shadow_root
     print("L12b: shadow_root(copy-url-popup) получен")
 
+    print("L12b1: включаю галочку 'Отобразить карточку объекта'...")
+    if click_popup_checkbox_by_text(driver, popup_host, "Отобразить карточку объекта"):
+        print("L12b2: клик по галочке выполнен")
+    else:
+        print("L12b2: галочка не найдена")
+    time.sleep(0.5)
+
     # 3) Внутри popup: input.input с ссылкой
     print("L12c: ищу input.input со ссылкой внутри popup...")
     share_input = wait_in(popup_shadow, timeout).until(
@@ -195,6 +256,13 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
         )
     )
     print("L12d: input.input найден")
+    try:
+        WebDriverWait(driver, 10).until(
+            lambda _d: "selectedCard=" in (share_input.get_attribute("value") or "")
+        )
+        print("L12d1: ссылка в popup содержит selectedCard")
+    except Exception:
+        print("L12d1: ссылка в popup пока без selectedCard")
 
     # 4) Кнопка 'Скопировать ссылку' (m-button.popup-button -> shadow_root -> button)
     print("L12e: ищу m-button.popup-button внутри popup...")
