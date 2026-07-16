@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -175,10 +176,28 @@ def search_and_open_card(driver, sidebar_shadow, cad_num: str, timeout: int = 90
     found_shadow = found_host.shadow_root
     print("L7: shadow_root m-found-objects получен")
 
+    def find_accordion():
+        try:
+            current_found_host = sidebar_shadow.find_element(
+                By.CSS_SELECTOR, "m-found-objects"
+            )
+            current_found_shadow = current_found_host.shadow_root
+            return current_found_shadow.find_element(By.CSS_SELECTOR, "m-accordion")
+        except WebDriverException:
+            return False
+
     print("L8: ищу m-accordion внутри shadow_root m-found-objects...")
-    accordion = wait_in(found_shadow, timeout).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "m-accordion"))
-    )
+    try:
+        accordion = WebDriverWait(driver, 30).until(
+            lambda _driver: find_accordion()
+        )
+    except TimeoutException:
+        print("L8a: список результатов не появился — повторно нажимаю Поиск...")
+        search_input.send_keys(Keys.ENTER)
+        print("L8b: заново жду список результатов...")
+        accordion = WebDriverWait(driver, timeout).until(
+            lambda _driver: find_accordion()
+        )
     accordion_shadow = accordion.shadow_root
     print("L8: m-accordion найден, shadow_root m-accordion получен")
 
